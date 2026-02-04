@@ -250,7 +250,6 @@ jobs:
           machine: ${{ matrix.machine.name }}
           version: ${{ needs.init.outputs.version }}
           arch: ${{ matrix.machine.arch }}
-          push: false
 
   # publish_ha:
   #   name: Publish version files
