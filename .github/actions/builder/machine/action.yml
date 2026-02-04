@@ -27,14 +27,14 @@ runs:
           "ghcr.io/home-assistant/${{ inputs.machine }}-homeassistant:${{ inputs.version }}"
         )
 
-        # Add general tag based on version
-        if [[ "${{ inputs.version }}" =~ d ]]; then
-          TAGS+=("ghcr.io/home-assistant/${{ inputs.machine }}-homeassistant:dev")
-        elif [[ "${{ inputs.version }}" =~ b ]]; then
-          TAGS+=("ghcr.io/home-assistant/${{ inputs.machine }}-homeassistant:beta")
-        else
-          TAGS+=("ghcr.io/home-assistant/${{ inputs.machine }}-homeassistant:stable")
-        fi
+        # # Add general tag based on version
+        # if [[ "${{ inputs.version }}" =~ d ]]; then
+        #   TAGS+=("ghcr.io/home-assistant/${{ inputs.machine }}-homeassistant:dev")
+        # elif [[ "${{ inputs.version }}" =~ b ]]; then
+        #   TAGS+=("ghcr.io/home-assistant/${{ inputs.machine }}-homeassistant:beta")
+        # else
+        #   TAGS+=("ghcr.io/home-assistant/${{ inputs.machine }}-homeassistant:stable")
+        # fi
 
         # Output tags using EOF delimiter for multiline
         {
