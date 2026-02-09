@@ -88,6 +88,7 @@ class UpdateCoordinatorDataType(TypedDict):
 
     call_deflections: dict[int, dict]
     entity_states: dict[str, StateType | bool]
+    wifi_networks: dict[int, dict]
 
 
 class FritzBoxTools(DataUpdateCoordinator[UpdateCoordinatorDataType]):
@@ -262,6 +263,7 @@ class FritzBoxTools(DataUpdateCoordinator[UpdateCoordinatorDataType]):
         entity_data: UpdateCoordinatorDataType = {
             "call_deflections": {},
             "entity_states": {},
+            "wifi_networks": {},
         }
         try:
             await self.async_update_device_info()
@@ -277,6 +279,30 @@ class FritzBoxTools(DataUpdateCoordinator[UpdateCoordinatorDataType]):
                 entity_data[
                     "call_deflections"
                 ] = await self.async_update_call_deflections()
+
+            wifi_count = len(
+                [
+                    s
+                    for s in self.connection.services
+                    if s.startswith("WLANConfiguration")
+                ]
+            )
+            _LOGGER.debug("WiFi networks count: %s", wifi_count)
+            for i in range(1, wifi_count + 1):
+                network_info = await self.async_get_wlan_configuration(i)
+                # Devices with 4 WLAN services, use the 2nd for internal communications
+                if not (wifi_count == 4 and i == 2):
+                    entity_data["wifi_networks"][i] = {
+                        "ssid": network_info["NewSSID"],
+                        "bssid": network_info["NewBSSID"],
+                        "standard": network_info["NewStandard"],
+                        "enabled": network_info["NewEnable"],
+                        "status": network_info["NewStatus"],
+                        "mac_control_enabled": network_info[
+                            "NewMACAddressControlEnabled"
+                        ],
+                    }
+
         except FRITZ_EXCEPTIONS as ex:
             raise UpdateFailed(
                 translation_domain=DOMAIN,
@@ -344,6 +370,52 @@ class FritzBoxTools(DataUpdateCoordinator[UpdateCoordinatorDataType]):
     def signal_device_update(self) -> str:
         """Event specific per FRITZ!Box entry to signal updates in devices."""
         return f"{DOMAIN}-device-update-{self._unique_id}"
+
+    async def _async_service_call(
+        self,
+        service_name: str,
+        service_suffix: str,
+        action_name: str,
+        **kwargs: Any,
+    ) -> dict:
+        """Return service details."""
+
+        if self.hass.is_stopping:
+            _ha_is_stopping(f"{service_name}/{action_name}")
+            return {}
+
+        if f"{service_name}{service_suffix}" not in self.connection.services:
+            return {}
+
+        try:
+            result: dict = await self.hass.async_add_executor_job(
+                partial(
+                    self.connection.call_action,
+                    f"{service_name}:{service_suffix}",
+                    action_name,
+                    **kwargs,
+                )
+            )
+        except FritzSecurityError:
+            _LOGGER.exception(
+                "Authorization Error: Please check the provided credentials and"
+                " verify that you can log into the web interface"
+            )
+            return {}
+        except FRITZ_EXCEPTIONS:
+            _LOGGER.exception(
+                "Service/Action Error: cannot execute service %s with action %s",
+                service_name,
+                action_name,
+            )
+            return {}
+        except FritzConnectionException:
+            _LOGGER.exception(
+                "Connection Error: Please check the device is properly configured"
+                " for remote login"
+            )
+            return {}
+        return result
 
     async def _async_get_wan_access(self, ip_address: str) -> bool | None:
         """Get WAN access rule for given IP address."""
@@ -496,6 +568,13 @@ class FritzBoxTools(DataUpdateCoordinator[UpdateCoordinatorDataType]):
             self._latest_firmware,
             self._release_url,
         ) = await self._async_update_device_info()
+
+    async def async_get_wlan_configuration(self, index: int) -> dict[str, Any]:
+        """Call WLANConfiguration service."""
+
+        return await self._async_service_call(
+            "WLANConfiguration", str(index), "GetInfo"
+        )
 
     async def async_scan_devices(self, now: datetime | None = None) -> None:
         """Scan for new network devices."""
@@ -666,52 +745,6 @@ class FritzBoxTools(DataUpdateCoordinator[UpdateCoordinatorDataType]):
 class AvmWrapper(FritzBoxTools):
     """Setup AVM wrapper for API calls."""
 
-    async def _async_service_call(
-        self,
-        service_name: str,
-        service_suffix: str,
-        action_name: str,
-        **kwargs: Any,
-    ) -> dict:
-        """Return service details."""
-
-        if self.hass.is_stopping:
-            _ha_is_stopping(f"{service_name}/{action_name}")
-            return {}
-
-        if f"{service_name}{service_suffix}" not in self.connection.services:
-            return {}
-
-        try:
-            result: dict = await self.hass.async_add_executor_job(
-                partial(
-                    self.connection.call_action,
-                    f"{service_name}:{service_suffix}",
-                    action_name,
-                    **kwargs,
-                )
-            )
-        except FritzSecurityError:
-            _LOGGER.exception(
-                "Authorization Error: Please check the provided credentials and"
-                " verify that you can log into the web interface"
-            )
-            return {}
-        except FRITZ_EXCEPTIONS:
-            _LOGGER.exception(
-                "Service/Action Error: cannot execute service %s with action %s",
-                service_name,
-                action_name,
-            )
-            return {}
-        except FritzConnectionException:
-            _LOGGER.exception(
-                "Connection Error: Please check the device is properly configured"
-                " for remote login"
-            )
-            return {}
-        return result
-
     async def async_get_upnp_configuration(self) -> dict[str, Any]:
         """Call X_AVM-DE_UPnP service."""
 
@@ -766,13 +799,6 @@ class AvmWrapper(FritzBoxTools):
 
         return await self._async_service_call(
             con_type, "1", "GetGenericPortMappingEntry", NewPortMappingIndex=index
-        )
-
-    async def async_get_wlan_configuration(self, index: int) -> dict[str, Any]:
-        """Call WLANConfiguration service."""
-
-        return await self._async_service_call(
-            "WLANConfiguration", str(index), "GetInfo"
         )
 
     async def async_set_wlan_configuration(
