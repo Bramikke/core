@@ -22,7 +22,6 @@ from tests.common import MockConfigEntry, async_fire_time_changed
 from tests.typing import ClientSessionGenerator
 
 GUEST_WIFI_ENABLED: dict[str, dict] = {
-    "WLANConfiguration0": {},
     "WLANConfiguration1": {
         "GetBeaconAdvertisement": {"NewBeaconAdvertisementEnabled": 1},
         "GetInfo": {
@@ -31,6 +30,7 @@ GUEST_WIFI_ENABLED: dict[str, dict] = {
             "NewSSID": "GuestWifi",
             "NewBeaconType": "11iandWPA3",
             "NewX_AVM-DE_PossibleBeaconTypes": "None,11i,11iandWPA3",
+            "NewMACAddressControlEnabled": False,
             "NewStandard": "ax",
             "NewBSSID": "1C:ED:6F:12:34:13",
         },
@@ -42,7 +42,6 @@ GUEST_WIFI_ENABLED: dict[str, dict] = {
 }
 
 GUEST_WIFI_CHANGED: dict[str, dict] = {
-    "WLANConfiguration0": {},
     "WLANConfiguration1": {
         "GetBeaconAdvertisement": {"NewBeaconAdvertisementEnabled": 1},
         "GetInfo": {
@@ -51,6 +50,7 @@ GUEST_WIFI_CHANGED: dict[str, dict] = {
             "NewSSID": "GuestWifi",
             "NewBeaconType": "11iandWPA3",
             "NewX_AVM-DE_PossibleBeaconTypes": "None,11i,11iandWPA3",
+            "NewMACAddressControlEnabled": False,
             "NewStandard": "ax",
             "NewBSSID": "1C:ED:6F:12:34:13",
         },
@@ -62,7 +62,6 @@ GUEST_WIFI_CHANGED: dict[str, dict] = {
 }
 
 GUEST_WIFI_DISABLED: dict[str, dict] = {
-    "WLANConfiguration0": {},
     "WLANConfiguration1": {
         "GetBeaconAdvertisement": {"NewBeaconAdvertisementEnabled": 1},
         "GetInfo": {
@@ -71,6 +70,7 @@ GUEST_WIFI_DISABLED: dict[str, dict] = {
             "NewSSID": "GuestWifi",
             "NewBeaconType": "11iandWPA3",
             "NewX_AVM-DE_PossibleBeaconTypes": "None,11i,11iandWPA3",
+            "NewMACAddressControlEnabled": False,
             "NewStandard": "ax",
             "NewBSSID": "1C:ED:6F:12:34:13",
         },
